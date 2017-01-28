@@ -23,6 +23,7 @@ enum SoundMessage {
 
 enum CarState {
     None = 0x000000,
+    Joined = 0x0f000f,
     Run = 0xa0a0a0,
     Turbo = 0x0c0c00,
     Crashing = 0x0000ff,
@@ -153,6 +154,7 @@ namespace neoracer {
                 case CarState.Turbo: msg = "turbo"; break;
                 case CarState.Crashing: msg = "crashing"; break;
                 case CarState.Finished: msg = "finished"; break;
+                case CarState.Joined: msg = "joined"; break;
             }
             radio.sendValue(msg, this.deviceId);
         }
@@ -162,9 +164,18 @@ namespace neoracer {
             const did = packet.receivedNumber;
             if (did != this.deviceId || !msg) return; // not for me
             switch (msg) {
-                case "crash": music.playTone(800, 100); break;
-                case "turbo": music.playTone(600, 50); break;
-                case "run": music.playTone(400, 50); break;
+                case "crash": led.toggle(2, 2); music.playTone(800, 100); break;
+                case "turbo": led.toggle(2, 2); music.playTone(600, 50); break;
+                case "run": led.toggle(2, 2); music.playTone(400, 50); break;
+                case "joined":
+                    basic.showLeds(
+                        `
+. . . . .
+. . . . #
+. . . # .
+# . # . .
+. # . . .`)
+                    break;
                 default:
                     basic.showString(msg);
                     break;
@@ -229,14 +240,19 @@ namespace neoracer {
         public car(deviceId: number): Car {
             for (let i = 0; i < this.cars.length; ++i)
                 if (this.cars[i].deviceId == deviceId) return this.cars[i];
+            return null;
+        }
 
-            const car = new Car();
-            car.deviceId = deviceId;
-            car.state = CarState.None;
-            car.color = carColors[(this.cars.length - 1) % carColors.length];
-            this.cars.push(car)
+        public addCar(deviceId: number): Car {
+            if (this.car(deviceId)) return; // already added
 
-            return car;
+            const c = new Car();
+            c.deviceId = deviceId;
+            c.color = carColors[(this.cars.length - 1) % carColors.length];
+            this.cars.push(c)
+
+            c.setState(CarState.Joined);
+            return c;
         }
 
         /**
@@ -290,7 +306,7 @@ namespace neoracer {
             this.startTime = input.runningTime();
             do {
                 this.step();
-            } while (!this.allCarsDone());
+            } while (this.anyCarDone());
             this.ending();
         }
 
@@ -365,12 +381,12 @@ namespace neoracer {
             basic.pause(20);
         }
 
-        private allCarsDone(): boolean {
+        private anyCarDone(): boolean {
             const n = this.track.strip.length() * this.laps;
             const cars = this.track.cars;
             for (let i = 0; i < cars.length; ++i)
-                if (cars[i].offset < n) return false;
-            return true;
+                if (cars[i].offset >= n) return true;
+            return false;
         }
 
         private listenRadio(group: number) {
@@ -389,7 +405,7 @@ namespace neoracer {
                         if (GameState.Stopped) {
                             this.countdown();
                         } else if (GameState.Countdown) {
-                            const c = this.track.car(packet.serial);
+                            const c = this.track.addCar(packet.serial);
                             c.deserialize(packet.receivedNumber);
                             this.track.render();
                         }
@@ -398,6 +414,8 @@ namespace neoracer {
                         if (!GameState.Running) break;
 
                         const c = this.track.car(packet.serial);
+                        if (!c) return;
+
                         c.deserialize(packet.receivedNumber);
                         const li = packet.serial % 25;
                         led.toggle(li / 5, li % 5);
