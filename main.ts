@@ -77,15 +77,12 @@ namespace neoracer {
         public move(car: Car) {
             const crash = this.isCrashing(car);
             if (crash) {
-                car.state = CarState.Crashing;
+                car.setState(CarState.Crashing);
                 // don't move during crash
             } else {
-                car.state = car.turbo ? CarState.Turbo : CarState.Run;
                 car.offset += car.turbo ? 2 : 1;
+                car.setState(car.turbo ? CarState.Turbo : CarState.Run);
             }
-
-            let かっぷ = 123;
-
         }
 
         public isCrashing(car: Car): boolean {
@@ -143,6 +140,34 @@ namespace neoracer {
                 const o = (this.offset + n - head - i) % l;
                 const c = (this.color + this.state) / (i * 4 + 2);
                 strip.setPixelColor(o, c);
+            }
+        }
+
+        public setState(state: CarState) {
+            this.state = state;
+            if (this.state == CarState.None) return;
+
+            let msg: string;
+            switch (this.state) {
+                case CarState.Run: msg = "run"; break;
+                case CarState.Turbo: msg = "turbo"; break;
+                case CarState.Crashing: msg = "crashing"; break;
+                case CarState.Finished: msg = "finished"; break;
+            }
+            radio.sendValue(msg, this.deviceId);
+        }
+
+        public receivePacket(packet: radio.Packet) {
+            const msg = packet.receivedString;
+            const did = packet.receivedNumber;
+            if (did != this.deviceId || !msg) return; // not for me
+            switch (msg) {
+                case "crash": music.playTone(800, 100); break;
+                case "turbo": music.playTone(600, 50); break;
+                case "run": music.playTone(400, 50); break;
+                default:
+                    basic.showString(msg);
+                    break;
             }
         }
     }
@@ -241,6 +266,7 @@ namespace neoracer {
         }
 
         private countdown() {
+            serial.writeLine("countdown")
             this.state = GameState.Countdown;
             this.track.render();
 
@@ -258,6 +284,7 @@ namespace neoracer {
         }
 
         private run() {
+            serial.writeLine("run")
             this.state = GameState.Running;
             this.track.render();
             this.startTime = input.runningTime();
@@ -268,7 +295,14 @@ namespace neoracer {
         }
 
         private ending() {
+            serial.writeLine("ending")
             this.state = GameState.Ending;
+            basic.showLeds(
+                `# . # . #
+  . # . # .
+  # . # . #
+  . # . # .
+  # . # . #`)
             this.spark();
             // send results
             this.track.cars = [];
@@ -276,6 +310,7 @@ namespace neoracer {
         }
 
         private stop() {
+            serial.writeLine("stop")
             this.state = GameState.Stopped;
             basic.clearScreen();
             basic.showLeds(
@@ -289,6 +324,7 @@ namespace neoracer {
 
         private spark() {
             const strip = this.track.strip;
+            const n = strip.length();
             strip.clear()
             for (let m = 0; m < 50; m++) {
                 const l = Math.random(n)
@@ -300,6 +336,7 @@ namespace neoracer {
                 basic.pause(20);
             }
             strip.clear();
+            strip.show();
         }
 
         private step() {
@@ -318,7 +355,7 @@ namespace neoracer {
                 // are we done?
                 if (car.offset >= n) {
                     car.time = input.runningTime() - this.startTime;
-                    car.state = CarState.Finished;
+                    car.setState(CarState.Finished);
                 }
             }
 
@@ -340,25 +377,30 @@ namespace neoracer {
             radio.setGroup(group);
             radio.setTransmitPower(7);
             radio.onDataPacketReceived(packet => {
-                if (!packet.serial) return;
+                const msg = packet.receivedString
+                const serial = packet.serial;
+
+                if (!serial || !msg) return;
                 if (GameState.Ending) return;
 
-                const cn = this.track.cars.length;
-                const c = this.track.car(packet.serial);
-                c.deserialize(packet.receivedNumber);
-                const newCar = this.track.cars.length > cn;
+                switch (msg) {
+                    case "A":
+                    case "B":
+                        if (GameState.Stopped) {
+                            this.countdown();
+                        } else if (GameState.Countdown) {
+                            const c = this.track.car(packet.serial);
+                            c.deserialize(packet.receivedNumber);
+                            this.track.render();
+                        }
+                        break;
+                    case "state":
+                        if (!GameState.Running) break;
 
-                switch (this.state) {
-                    case GameState.Running:
+                        const c = this.track.car(packet.serial);
+                        c.deserialize(packet.receivedNumber);
                         const li = packet.serial % 25;
                         led.toggle(li / 5, li % 5);
-                        break;
-                    case GameState.Stopped:
-                        this.countdown();
-                        break;
-                    case GameState.Countdown:
-                        if (newCar)
-                            this.track.render();
                         break;
                 }
             });
@@ -408,7 +450,7 @@ namespace neoracer {
         track.addSection(straight, SectionShape.Straight);
         track.addSection(turn, SectionShape.RightTurn);
 
-        engine.startTime();
+        engine.start();
     }
 
     /**
@@ -419,11 +461,22 @@ namespace neoracer {
         radio.setTransmitSerialNumber(true);
         radio.setTransmitPower(7);
         const car = new Car();
+        car.deviceId = control.deviceSerialNumber();
+
+        input.onButtonPressed(Button.A, () => {
+            radio.sendString("A");
+        })
+        input.onButtonPressed(Button.A, () => {
+            radio.sendString("B");
+        })
+        radio.onDataPacketReceived(packet => {
+            car.receivePacket(packet);
+        })
 
         while (true) {
             car.steering = pins.map(input.acceleration(Dimension.X), -1023, 1023, -4, 4);
             car.turbo = input.buttonIsPressed(Button.A);
-            radio.sendNumber(car.serialize());
+            radio.sendValue("state", car.serialize());
             led.plot(Math.random(5), Math.random(5));
             basic.pause(20);
         }
