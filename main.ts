@@ -159,20 +159,20 @@ namespace neoracer {
         /**
          * Adds a section to the track. Section must be added in order
          */
-        //% blockId=track_add_section block="add section|length %length|as %flags"
-        public addSection(length: number, flags: number) {
+        //% blockId=track_add_section block="add section|length %length|shape %shape"
+        public addSection(length: number, shape: SectionShape) {
             const s = new Section();
             let offset = 0;
             if (this.sections.length > 0) {
                 const last = this.sections[this.sections.length - 1];
                 offset = last.range.start + last.range.length();
             }
-            s.shape = flags;
+            s.shape = shape;
             s.range = this.strip.range(offset, Math.min(length, this.strip.length() - offset));
             s.color = 0x000400; // straight
-            if (flags & SectionShape.LeftTurn || flags & SectionShape.RightTurn)
+            if (shape & SectionShape.LeftTurn || shape & SectionShape.RightTurn)
                 s.color = 0x040000; // turn
-            else if (flags & SectionShape.Overpass)
+            else if (shape & SectionShape.Overpass)
                 s.color = 0x000004; // overpass
             this.sections.push(s);
         }
