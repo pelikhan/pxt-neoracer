@@ -380,8 +380,35 @@ namespace neoracer {
         engine.state = GameState.Stopped;
         engine.laps = 4;
         engine.group = group;
+        engine.startTime = 0;
 
         return engine;
+    }
+
+    /**
+     * Creates an infinity loop track on top of the strip
+    **/
+    export function infinityLoop(strip: neopixel.Strip, group: number = 42) {
+        const engine = createEngine(strip, group);
+        const track = engine.track;
+        const n = strip.length();
+
+        const straight = n / 5;
+        const turn = (n - 4 * straight) / 4;
+        let correction = n - 4 * straight - 4 * turn;
+        const overpass = turn + correction / 2;
+        correction = n - 2 * turn - 2 * overpass;
+
+        track.addSection(straight + correction, SectionShape.Straight);
+        track.addSection(overpass, SectionShape.Overpass);
+        track.addSection(straight, SectionShape.Straight);
+        track.addSection(turn, SectionShape.LeftTurn);
+        track.addSection(straight, SectionShape.Straight);
+        track.addSection(overpass, SectionShape.Overpass);
+        track.addSection(straight, SectionShape.Straight);
+        track.addSection(turn, SectionShape.RightTurn);
+
+        engine.startTime();
     }
 
     /**
