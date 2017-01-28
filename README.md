@@ -4,7 +4,7 @@
 
 ## Supported targets
 
-* for PXT/microbit
+* for PXT/ microbit
 
 ## License
 
