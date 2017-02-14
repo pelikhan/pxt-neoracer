@@ -10,10 +10,14 @@
     },
     "files": [
         "README.md",
-        "neoracer.ts"
+        "neoracer.ts",
+        "section.ts",
+        "car.ts",
+        "track.ts",
+        "engine.ts"
     ],
     "testFiles": [
         "tests.ts"
     ],
-    "public": false
+    "public": true
 }
