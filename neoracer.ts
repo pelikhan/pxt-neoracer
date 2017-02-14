@@ -24,7 +24,7 @@ enum SoundMessage {
 enum CarState {
     None = 0x000000,
     Joined = 0x0f000f,
-    Run = 0xa0a0a0,
+    Run = 0x010101,
     Turbo = 0x0c0c00,
     Crashing = 0x0000ff,
     Finished = 0x0f0f0f
@@ -36,11 +36,10 @@ enum CarState {
 namespace neoracer {
     const carColors = [
         NeoPixelColors.Blue,
-        NeoPixelColors.Red,
-        NeoPixelColors.Green,
-        NeoPixelColors.Orange,
+        NeoPixelColors.Yellow,
         NeoPixelColors.Violet,
-        NeoPixelColors.Indigo
+        NeoPixelColors.Indigo,
+        NeoPixelColors.Orange
     ];
 
     export interface ISection {
@@ -83,8 +82,14 @@ namespace neoracer {
         public move(car: Car): void {
             const crash = this.isCrashing(car);
             if (crash) {
-                car.setState(CarState.Crashing);
-                // don't move during crash
+                if (car.state == CarState.Crashing) {
+                    car.offset += 1;
+                    car.setState(CarState.Run);
+                }
+                else {
+                    // don't move 1 turn during crash
+                    car.setState(CarState.Crashing);
+                }
             } else {
                 car.offset += car.turbo ? 2 : 1;
                 car.setState(car.turbo ? CarState.Turbo : CarState.Run);
@@ -133,17 +138,18 @@ namespace neoracer {
 
         public render(strip: neopixel.Strip) {
             const head = 2;
-            const trail = 3;
+            const trail = 2;
             const n = head + trail;
             const l = strip.length();
+            const col = this.state == CarState.Crashing ? 0xFF0000 : this.color;
 
             for (let i = 0; i < head; ++i) {
                 const o = (this.offset + n - i) % l;
-                strip.setPixelColor(o, this.color);
+                strip.setPixelColor(o, col);
             }
             for (let i = 0; i < trail; ++i) {
                 const o = (this.offset + n - head - i) % l;
-                const c = (this.color + this.state) / (i * 4 + 2);
+                const c = col / (i * 4 + 2);
                 strip.setPixelColor(o, c);
             }
         }
@@ -245,16 +251,15 @@ namespace neoracer {
             do {
                 const m = l + (r - l) / 2;
                 const s = this.sections[m];
-                if (s.contains(offset)) return s;
-
+                if (s.contains(offset)) {
+                    return s;
+                }
                 if (offset < s.range.start)
-                    r = m - 1;
+                    r = Math.max(l, m - 1);
                 else
-                    l = m + 1;
+                    l = Math.min(r, m + 1);
             } while (l != r);
-
-            // no found
-            return null;
+            return this.sections[l];
         }
 
         /**
@@ -271,7 +276,7 @@ namespace neoracer {
 
             const c = new Car();
             c.deviceId = deviceId;
-            c.color = carColors[(this.cars.length - 1) % carColors.length];
+            c.color = carColors[this.cars.length % carColors.length];
             this.cars.push(c)
 
             c.setState(CarState.Joined);
@@ -309,10 +314,11 @@ namespace neoracer {
         }
 
         private countdown() {
-            serial.writeLine("countdown")
             this.state = GameState.Countdown;
+            this.track.strip.clear();
+            this.track.strip.show();
+            basic.pause(1000);
             this.track.show();
-
             basic.clearScreen();
             for (let i = 0; i < 3; ++i) {
                 basic.showNumber(3 - i, 0);
@@ -327,7 +333,6 @@ namespace neoracer {
         }
 
         private run() {
-            serial.writeLine("run")
             this.state = GameState.Running;
             this.track.show();
             this.startTime = input.runningTime();
@@ -338,7 +343,6 @@ namespace neoracer {
         }
 
         private ending() {
-            serial.writeLine("ending")
             this.state = GameState.Ending;
             basic.showLeds(
                 `# . # . #
@@ -353,7 +357,6 @@ namespace neoracer {
         }
 
         private stop() {
-            serial.writeLine("stop")
             this.state = GameState.Stopped;
             basic.clearScreen();
             basic.showLeds(
@@ -384,6 +387,7 @@ namespace neoracer {
         }
 
         private step() {
+            serial.writeLine("step");
             const n = this.track.strip.length() * this.laps;
 
             const cars = this.track.cars;
@@ -413,7 +417,9 @@ namespace neoracer {
             const n = this.track.strip.length() * this.laps;
             const cars = this.track.cars;
             for (let i = 0; i < cars.length; ++i)
-                if (cars[i].offset >= n) return true;
+                if (cars[i].offset >= n) {
+                    return true;
+                }
             return false;
         }
 
@@ -423,6 +429,12 @@ namespace neoracer {
                     this.countdown();
                 }
             })
+            input.onButtonPressed(Button.A, () => {
+                if (this.state == GameState.Stopped) {
+                    this.track.addCar(0);
+                    this.countdown();
+                }
+            });
         }
 
         private listenRadio(group: number) {

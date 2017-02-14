@@ -28,6 +28,10 @@
         { length: 34, shape: SectionShape.Straight },
         { length: 6, shape: SectionShape.Overpass },
         { length: 5, shape: SectionShape.LeftTurn },
+        { length: 44, shape: SectionShape.Straight },
     ])
     track.show();
+
+    const engine = neoracer.createEngine(track);
+    engine.start();
 }
