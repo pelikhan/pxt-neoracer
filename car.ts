@@ -73,17 +73,18 @@ namespace neoracer {
             const did = packet.receivedNumber;
             if (did != this.deviceId || !msg) return; // not for me
             switch (msg) {
-                case "run": led.toggle(2, 2); music.playTone(400, 50); break;
-                case "turbo": led.toggle(2, 2); music.playTone(600, 50); break;
+                case "run": led.toggle(0, 0); music.playTone(400, 50); break;
+                case "turbo": led.toggle(1, 1); music.playTone(600, 50); break;
                 case "crash": led.toggle(2, 2); music.playTone(800, 100); break;
                 case "joined":
-                    basic.showLeds(
-                        `
+                    music.playTone(400, 200);
+                    music.playTone(600, 400);
+                    basic.showLeds(`
 . . . . .
 . . . . #
 . . . # .
 # . # . .
-. # . . .`)
+. # . . .`)                    
                     break;
                 default:
                     // ignore    
