@@ -21,11 +21,11 @@ namespace neoracer {
             }
             s.shape = shape;
             s.range = this.strip.range(offset, Math.min(length, this.strip.length() - offset));
-            s.color = 0x000400; // straight
+            s.color = 0x000200; // straight
             if ((shape & SectionShape.LeftTurn) || (shape & SectionShape.RightTurn))
-                s.color = 0x040000; // turn
+                s.color = 0x020000; // turn
             else if (shape & SectionShape.Overpass)
-                s.color = 0x000004; // overpass
+                s.color = 0x000002; // overpass
             this.sections.push(s);
         }
 
