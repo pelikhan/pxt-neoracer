@@ -1,8 +1,8 @@
 enum SectionShape {
     Straight,
-    LeftTurn,
-    RightTurn,
-    Overpass
+    LeftTurn = 1,
+    RightTurn = 2,
+    Overpass = 4
 }
 
 enum GameState {
@@ -43,11 +43,16 @@ namespace neoracer {
         NeoPixelColors.Indigo
     ];
 
+    export interface ISection {
+        length: number;
+        shape: SectionShape;
+    }
+
     /**
      * A section of a race track
      */
     //%
-    class Section {
+    export class Section {
         public range: neopixel.Strip;
         public shape: SectionShape;
         public color: number;
@@ -65,7 +70,7 @@ namespace neoracer {
          * Renders the car section
          */
         //%
-        public render() {
+        public render(): void {
             const n = this.range.length();
             for (let i = 0; i < n; ++i) {
                 this.range.setPixelColor(i, this.color);
@@ -75,7 +80,7 @@ namespace neoracer {
         /**
          * Moves the car according to the game rules
          */
-        public move(car: Car) {
+        public move(car: Car): void {
             const crash = this.isCrashing(car);
             if (crash) {
                 car.setState(CarState.Crashing);
@@ -94,9 +99,8 @@ namespace neoracer {
                     return car.steering > -2;
                 case SectionShape.RightTurn:
                     return car.steering < 2;
-                //case SectionFlag.Straight:
                 default:
-                    return Math.abs(car.steering) > 2;
+                    return Math.abs(car.steering) > 1;
             }
         }
     }
@@ -104,7 +108,7 @@ namespace neoracer {
     /**
      * A virtual car racing down the track
      */
-    class Car {
+    export class Car {
         public deviceId: number;
         public turbo: boolean;
         public steering: int8;
@@ -156,7 +160,8 @@ namespace neoracer {
                 case CarState.Finished: msg = "finished"; break;
                 case CarState.Joined: msg = "joined"; break;
             }
-            radio.sendValue(msg, this.deviceId);
+            if (this.deviceId)
+                radio.sendValue(msg, this.deviceId);
         }
 
         public receivePacket(packet: radio.Packet) {
@@ -181,13 +186,25 @@ namespace neoracer {
                     break;
             }
         }
+
+        public updateState() {
+            this.steering = pins.map(input.acceleration(Dimension.X), -1023, 1023, -4, 4);
+            this.turbo = input.buttonIsPressed(Button.A);
+            if (this.deviceId)
+                radio.sendValue("state", this.serialize());
+        }
+
+        public updatePinState() {
+            this.steering = pins.map(pins.analogReadPin(AnalogPin.P1), 0, 1023, -4, 4);
+            this.turbo = input.pinIsPressed(TouchPin.P2);
+        }
     }
 
     /**
      * A track built on top of neopixel sections
      */
     //%
-    class Track {
+    export class Track {
         public strip: neopixel.Strip;
         public sections: Section[];
         public cars: Car[];
@@ -195,7 +212,7 @@ namespace neoracer {
         /**
          * Adds a section to the track. Section must be added in order
          */
-        //% blockId=track_add_section block="add section|length %length|shape %shape"
+        //% blockId=track_add_section block="add sections|length %length|shape %shape"
         public addSection(length: number, shape: SectionShape) {
             const s = new Section();
             let offset = 0;
@@ -206,11 +223,17 @@ namespace neoracer {
             s.shape = shape;
             s.range = this.strip.range(offset, Math.min(length, this.strip.length() - offset));
             s.color = 0x000400; // straight
-            if (shape & SectionShape.LeftTurn || shape & SectionShape.RightTurn)
+            if ((shape & SectionShape.LeftTurn) || (shape & SectionShape.RightTurn))
                 s.color = 0x040000; // turn
             else if (shape & SectionShape.Overpass)
                 s.color = 0x000004; // overpass
             this.sections.push(s);
+        }
+
+        //%        
+        public addSections(sections: ISection[]) {
+            for (let i = 0; i < sections.length; ++i)
+                this.addSection(sections[i].length, sections[i].shape);
         }
 
         /**
@@ -258,15 +281,17 @@ namespace neoracer {
         /**
          * Renders the current state of the track
          */
-        public render() {
+        public show() {
+            this.strip.clear();
             for (let i = 0; i < this.sections.length; ++i)
                 this.sections[i].render();
             for (let i = 0; i < this.cars.length; ++i)
                 this.cars[i].render(this.strip);
+            this.strip.show();
         }
     }
 
-    class Engine {
+    export class Engine {
         public group: number;
         public track: Track;
         public state: GameState;
@@ -276,7 +301,9 @@ namespace neoracer {
         /**
          * Starts the game engine
          */
+        //% blockId=neoracer_engine_start block="%this|start"
         public start() {
+            this.listenPins();
             this.listenRadio(this.group);
             this.stop();
         }
@@ -284,7 +311,7 @@ namespace neoracer {
         private countdown() {
             serial.writeLine("countdown")
             this.state = GameState.Countdown;
-            this.track.render();
+            this.track.show();
 
             basic.clearScreen();
             for (let i = 0; i < 3; ++i) {
@@ -302,11 +329,11 @@ namespace neoracer {
         private run() {
             serial.writeLine("run")
             this.state = GameState.Running;
-            this.track.render();
+            this.track.show();
             this.startTime = input.runningTime();
             do {
                 this.step();
-            } while (this.anyCarDone());
+            } while (!this.anyCarDone());
             this.ending();
         }
 
@@ -336,6 +363,7 @@ namespace neoracer {
  # . . . #
  # # # # #`)
             // wait for players to play
+            this.track.show();
         }
 
         private spark() {
@@ -376,7 +404,7 @@ namespace neoracer {
             }
 
             // render
-            this.track.render();
+            this.track.show();
             // sleep
             basic.pause(20);
         }
@@ -387,6 +415,14 @@ namespace neoracer {
             for (let i = 0; i < cars.length; ++i)
                 if (cars[i].offset >= n) return true;
             return false;
+        }
+
+        private listenPins() {
+            input.onPinPressed(TouchPin.P2, () => {
+                if (this.state == GameState.Stopped) {
+                    this.countdown();
+                }
+            })
         }
 
         private listenRadio(group: number) {
@@ -407,7 +443,7 @@ namespace neoracer {
                         } else if (GameState.Countdown) {
                             const c = this.track.addCar(packet.serial);
                             c.deserialize(packet.receivedNumber);
-                            this.track.render();
+                            this.track.show();
                         }
                         break;
                     case "state":
@@ -428,13 +464,21 @@ namespace neoracer {
     /** 
      * Creates a new pixel track on top of the NeoPixel strip 
      */
-    //% blockId=neoracer_create_engine block="create engine %strip"
-    export function createEngine(strip: neopixel.Strip, group: number = 42): Engine {
+    //% blockId=neoracer_create_track block="create track %strip"
+    export function createTrack(strip: neopixel.Strip): Track {
         const track = new Track();
-        track.strip.setBrigthness(255); // handled internally
         track.strip = strip;
+        track.strip.setBrigthness(255); // handled internally
         track.sections = [];
+        track.cars = [];
+        return track;
+    }
 
+    /** 
+     * Creates a new pixel track on top of the NeoPixel strip 
+     */
+    //% blockId=neoracer_create_engine block="create engine %track=neoracer_create_track"
+    export function createEngine(track: Track, group: number = 42): Engine {
         const engine = new Engine();
         engine.track = track;
         engine.state = GameState.Stopped;
@@ -448,9 +492,10 @@ namespace neoracer {
     /**
      * Creates an infinity loop track on top of the strip
     **/
-    export function infinityLoop(strip: neopixel.Strip, group: number = 42) {
-        const engine = createEngine(strip, group);
-        const track = engine.track;
+    //% blockId=neoracer_start_infinityloop block="start infinity loop"
+    export function startInfinityLoop(strip: neopixel.Strip, group: number = 42) {
+        const track = createTrack(strip);
+        const engine = createEngine(track, group);
         const n = strip.length();
 
         const straight = n / 5;
@@ -474,10 +519,11 @@ namespace neoracer {
     /**
      *  Starts a car controller 
      **/
-    //% blockId=neoracer_start_controller block="start controller"
-    export function startController(group: number = 42) {
+    //% blockId=neoracer_start_remote_controller block="start controller"
+    export function startRemoteController(group: number = 42) {
         radio.setTransmitSerialNumber(true);
         radio.setTransmitPower(7);
+        radio.setGroup(42);
         const car = new Car();
         car.deviceId = control.deviceSerialNumber();
 
@@ -490,13 +536,37 @@ namespace neoracer {
         radio.onDataPacketReceived(packet => {
             car.receivePacket(packet);
         })
-
-        while (true) {
-            car.steering = pins.map(input.acceleration(Dimension.X), -1023, 1023, -4, 4);
-            car.turbo = input.buttonIsPressed(Button.A);
-            radio.sendValue("state", car.serialize());
+        basic.forever(() => {
+            car.updateState();
             led.plot(Math.random(5), Math.random(5));
-            basic.pause(20);
-        }
+        })
+    }
+
+    /**
+     * Starts a microbit as a sound system. Connect this microbit to a sound system.
+     */
+    //% blockId=neoracer_soundengine block="start sound engine"
+    export function startSoundEngine(group: number = 42) {
+        radio.setGroup(42);
+        radio.onDataPacketReceived(({receivedNumber}) => {
+            switch (receivedNumber) {
+                case SoundMessage.Run:
+                    led.toggle(0, 0);
+                    music.playTone(400, 70);
+                    break;
+                case SoundMessage.Turbo:
+                    led.toggle(1, 1)
+                    music.playTone(800, 20);
+                    break;
+                case SoundMessage.Crash:
+                    led.toggle(2, 2);
+                    music.playTone(600, 100);
+                    break;
+                case SoundMessage.Countdown:
+                    led.toggle(3, 3);
+                    music.playTone(500, 700);
+                    break;
+            }
+        })
     }
 }

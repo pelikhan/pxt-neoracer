@@ -10,7 +10,7 @@
     },
     "files": [
         "README.md",
-        "main.ts"
+        "neoracer.ts"
     ],
     "testFiles": [
         "tests.ts"
