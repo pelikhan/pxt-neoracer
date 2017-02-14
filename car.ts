@@ -13,9 +13,10 @@ namespace neoracer {
      */
     export class Car {
         public deviceId: number;
+        public usePins: boolean;
+
         public turbo: boolean;
         public steering: int8;
-
         public offset: number;
         public color: number;
         public state: CarState;
@@ -60,7 +61,7 @@ namespace neoracer {
             switch (this.state) {
                 case CarState.Run: msg = "run"; break;
                 case CarState.Turbo: msg = "turbo"; break;
-                case CarState.Crashing: msg = "crash"; break;
+                case CarState.Crashing: msg = "crashing"; break;
                 case CarState.Finished: msg = "finished"; break;
                 case CarState.Joined: msg = "joined"; break;
             }
@@ -73,10 +74,20 @@ namespace neoracer {
             const did = packet.receivedNumber;
             if (did != this.deviceId || !msg) return; // not for me
             switch (msg) {
-                case "run": led.toggle(0, 0); music.playTone(400, 50); break;
-                case "turbo": led.toggle(1, 1); music.playTone(600, 50); break;
-                case "crash": led.toggle(2, 2); music.playTone(800, 100); break;
+                case "run":
+                    this.state = CarState.Run;
+                    led.toggle(0, 0); music.playTone(400, 50);
+                    break;
+                case "turbo":
+                    this.state = CarState.Turbo;
+                    led.toggle(1, 1); music.playTone(600, 50);
+                    break;
+                case "crashing":
+                    this.state = CarState.Crashing;
+                    led.toggle(2, 2); music.playTone(800, 100);
+                    break;
                 case "joined":
+                    this.state = CarState.Joined;
                     music.playTone(400, 200);
                     music.playTone(600, 400);
                     basic.showLeds(`
@@ -84,7 +95,7 @@ namespace neoracer {
 . . . . #
 . . . # .
 # . # . .
-. # . . .`)                    
+. # . . .`)
                     break;
                 default:
                     // ignore    
@@ -93,15 +104,17 @@ namespace neoracer {
         }
 
         public updateState() {
-            this.steering = pins.map(input.acceleration(Dimension.X), -1023, 1023, -4, 4);
-            this.turbo = input.buttonIsPressed(Button.A);
-            if (this.deviceId)
-                radio.sendValue("state", this.serialize());
+            if (this.usePins) {
+                this.steering = pins.map(pins.analogReadPin(AnalogPin.P1), 0, 1023, -4, 4);
+                this.turbo = input.pinIsPressed(TouchPin.P2);
+            } else {
+                this.steering = pins.map(input.acceleration(Dimension.X), -1023, 1023, -4, 4);
+                this.turbo = input.buttonIsPressed(Button.A);
+            }
         }
 
-        public updatePinState() {
-            this.steering = pins.map(pins.analogReadPin(AnalogPin.P1), 0, 1023, -4, 4);
-            this.turbo = input.pinIsPressed(TouchPin.P2);
+        public sendState() {
+            radio.sendValue("state", this.serialize());
         }
     }
 

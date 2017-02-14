@@ -67,7 +67,6 @@ namespace neoracer {
         public addCar(deviceId: number): Car {
             if (this.car(deviceId)) return; // already added
 
-
             const carColors = [
                 NeoPixelColors.Blue,
                 NeoPixelColors.Yellow,

@@ -1,11 +1,6 @@
-
-enum SoundMessage {
-    None = 0,
-    Run = 400,
-    Turbo = 500,
-    Crash = 800,
-    Countdown = 600,
-    Start = 700
+enum GameControllerKind {
+    AccelerometerButton,
+    Pins
 }
 
 /**
@@ -42,12 +37,13 @@ namespace neoracer {
     /**
      *  Starts a car controller 
      **/
-    //% blockId=neoracer_start_remote_controller block="start controller"
-    export function startRemoteController(group: number = 42) {
+    //% blockId=neoracer_start_remote_controller block="start controller %kind"
+    export function startRemoteController(kind: GameControllerKind, group: number = 42) {
         radio.setTransmitSerialNumber(true);
         radio.setTransmitPower(7);
-        radio.setGroup(42);
+        radio.setGroup(group);
         const car = new Car();
+        car.usePins = kind == GameControllerKind.Pins;
         car.deviceId = control.deviceSerialNumber();
 
         input.onButtonPressed(Button.A, () => {
@@ -61,6 +57,7 @@ namespace neoracer {
         })
         basic.forever(() => {
             car.updateState();
+            car.sendState();
             led.plot(Math.random(5), Math.random(5));
         })
     }
@@ -70,7 +67,7 @@ namespace neoracer {
      */
     //% blockId=neoracer_soundengine block="start sound engine"
     export function startSoundEngine(group: number = 42) {
-        radio.setGroup(42);
+        radio.setGroup(group);
         radio.onDataPacketReceived(({receivedNumber}) => {
             switch (receivedNumber) {
                 case SoundMessage.Run:

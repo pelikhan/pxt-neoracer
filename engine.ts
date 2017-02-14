@@ -5,6 +5,15 @@ enum GameState {
     Ending
 }
 
+enum SoundMessage {
+    None = 0,
+    Run = 400,
+    Turbo = 500,
+    Crash = 800,
+    Countdown = 600,
+    Start = 700
+}
+
 namespace neoracer {
     /**
      * A race track game engine built for NeoPixel strips
