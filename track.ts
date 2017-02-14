@@ -88,7 +88,6 @@ namespace neoracer {
          * Renders the current state of the track
          */
         public show() {
-            this.strip.clear();
             for (let i = 0; i < this.sections.length; ++i)
                 this.sections[i].render();
             for (let i = 0; i < this.cars.length; ++i)

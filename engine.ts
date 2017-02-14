@@ -35,6 +35,14 @@ namespace neoracer {
             this.stop();
         }
 
+        private startCountdown() {
+            if (this.state != GameState.Stopped) return;
+            control.inBackground(() => {
+                if (this.state != GameState.Stopped) return;
+                this.countdown();
+            })
+        }
+
         private countdown() {
             this.state = GameState.Countdown;
             this.track.strip.clear();
@@ -43,15 +51,16 @@ namespace neoracer {
             this.track.show();
             basic.clearScreen();
             for (let i = 0; i < 3; ++i) {
+                this.sendTone(SoundMessage.Countdown);
                 basic.showNumber(3 - i, 0);
-                this.playTone(SoundMessage.Countdown, 500);
+                basic.pause(500);
             }
             led.plotAll();
             this.run();
         }
 
-        private playTone(pitch: number, duration: number) {
-            music.playTone(pitch, duration);
+        private sendTone(msg: SoundMessage) {
+            radio.sendValue("sound", msg);
         }
 
         private run() {
@@ -130,7 +139,7 @@ namespace neoracer {
             // render
             this.track.show();
             // sleep
-            basic.pause(20);
+            basic.pause(10);
         }
 
         private anyCarDone(): boolean {
@@ -170,13 +179,12 @@ namespace neoracer {
                 switch (msg) {
                     case "A":
                     case "B":
-                        if (GameState.Stopped) {
-                            this.countdown();
-                        } else if (GameState.Countdown) {
+                        if (GameState.Stopped || GameState.Countdown) {
                             const c = this.track.addCar(packet.serial);
                             c.deserialize(packet.receivedNumber);
                             this.track.show();
                         }
+                        this.startCountdown();
                         break;
                     case "state":
                         if (!GameState.Running) break;
