@@ -3,7 +3,7 @@ enum CarState {
     Joined = 0x0f000f,
     Run = 0x010101,
     Turbo = 0x0c0c00,
-    Crashing = 0x0000ff,
+    Crashing = 0xff0000,
     Finished = 0x0f0f0f
 }
 
@@ -39,7 +39,7 @@ namespace neoracer {
             const trail = 2;
             const n = head + trail;
             const l = strip.length();
-            const col = this.state == CarState.Crashing ? 0xFF0000 : this.color;
+            const col = this.state | this.color;
 
             for (let i = 0; i < head; ++i) {
                 const o = (this.offset + n - i) % l;
@@ -47,7 +47,7 @@ namespace neoracer {
             }
             for (let i = 0; i < trail; ++i) {
                 const o = (this.offset + n - head - i) % l;
-                const c = col / (i * 4 + 2);
+                const c = col;
                 strip.setPixelColor(o, c);
             }
         }
@@ -60,11 +60,11 @@ namespace neoracer {
             switch (this.state) {
                 case CarState.Run: msg = "run"; break;
                 case CarState.Turbo: msg = "turbo"; break;
-                case CarState.Crashing: msg = "crashing"; break;
+                case CarState.Crashing: msg = "crash"; break;
                 case CarState.Finished: msg = "finished"; break;
                 case CarState.Joined: msg = "joined"; break;
             }
-            if (this.deviceId)
+            if (this.deviceId) // builtin car id is 0, don't send message
                 radio.sendValue(msg, this.deviceId);
         }
 
@@ -73,9 +73,9 @@ namespace neoracer {
             const did = packet.receivedNumber;
             if (did != this.deviceId || !msg) return; // not for me
             switch (msg) {
-                case "crash": led.toggle(2, 2); music.playTone(800, 100); break;
-                case "turbo": led.toggle(2, 2); music.playTone(600, 50); break;
                 case "run": led.toggle(2, 2); music.playTone(400, 50); break;
+                case "turbo": led.toggle(2, 2); music.playTone(600, 50); break;
+                case "crash": led.toggle(2, 2); music.playTone(800, 100); break;
                 case "joined":
                     basic.showLeds(
                         `
@@ -86,7 +86,7 @@ namespace neoracer {
 . # . . .`)
                     break;
                 default:
-                    basic.showString(msg);
+                    // ignore    
                     break;
             }
         }
