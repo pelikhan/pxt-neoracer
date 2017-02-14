@@ -387,9 +387,7 @@ namespace neoracer {
         }
 
         private step() {
-            serial.writeLine("step");
             const n = this.track.strip.length() * this.laps;
-
             const cars = this.track.cars;
             for (let i = 0; i < cars.length; ++i) {
                 const car = cars[i];
