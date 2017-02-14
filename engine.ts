@@ -44,6 +44,7 @@ namespace neoracer {
         }
 
         private countdown() {
+            serial.writeLine("countdownn");
             this.state = GameState.Countdown;
             this.track.strip.clear();
             this.track.strip.show();
@@ -129,6 +130,8 @@ namespace neoracer {
                 const section = this.track.sectionFromOffset(car.offset);
                 section.move(car);
 
+                serial.writeLine(`car ${0}: state ${car.state}, section ${section.range.start}`)
+
                 // are we done?
                 if (car.offset >= n) {
                     car.time = input.runningTime() - this.startTime;
@@ -160,7 +163,7 @@ namespace neoracer {
             })
             input.onButtonPressed(Button.A, () => {
                 if (this.state == GameState.Stopped) {
-                    this.track.addCar(0);
+                    const car = this.track.addCar(0);
                     this.countdown();
                 }
             });

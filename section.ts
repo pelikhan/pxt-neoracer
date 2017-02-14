@@ -68,6 +68,7 @@ namespace neoracer {
                     return car.steering > -2;
                 case SectionShape.RightTurn:
                     return car.steering < 2;
+                case SectionShape.Straight:
                 default:
                     return Math.abs(car.steering) > 1;
             }

@@ -1,10 +1,10 @@
 enum CarState {
-    None = 0x000000,
-    Joined = 0x0f000f,
-    Run = 0x010101,
-    Turbo = 0x0c0c00,
-    Crashing = 0xff0000,
-    Finished = 0x0f0f0f
+    None,
+    Joined,
+    Run,
+    Turbo,
+    Crashing,
+    Finished
 }
 
 namespace neoracer {
@@ -40,7 +40,14 @@ namespace neoracer {
             const trail = 2;
             const n = head + trail;
             const l = strip.length();
-            const col = this.state | this.color;
+            const stateColors = [
+                0,
+                0x404000,
+                0x000000,
+                0xf00000,
+                0x0f0f0f
+            ]
+            const col = stateColors[this.state] | this.color;
 
             for (let i = 0; i < head; ++i) {
                 const o = (this.offset + n - i) % l;
