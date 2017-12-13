@@ -11,7 +11,7 @@ namespace neoracer {
      * Creates an infinity loop track on top of the strip
     **/
     //% blockId=neoracer_start_infinityloop block="start infinity loop"
-    export function startInfinityLoop(strip: neopixel.Strip, group: number = 42) {
+    export function startInfinityLoop(strip: neopixel.Strip, group: number = 0) {
         const track = createTrack(strip);
         const engine = createEngine(track, group);
         const n = strip.length();
@@ -30,6 +30,9 @@ namespace neoracer {
         track.addSection(overpass, SectionShape.Overpass);
         track.addSection(straight, SectionShape.Straight);
         track.addSection(turn, SectionShape.RightTurn);
+
+        if (group)
+            radio.setGroup(group);    
 
         engine.start();
     }
