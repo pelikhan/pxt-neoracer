@@ -18,7 +18,7 @@ namespace neoracer {
     /**
      * A race track game engine built for NeoPixel strips
      */
-    export class MultiPlayerEngine {
+    export class Engine {
         public group: number;
         public track: Track;
         public state: GameState;
@@ -208,8 +208,8 @@ namespace neoracer {
  * Creates a new pixel track on top of the NeoPixel strip 
  */
     //% blockId=neoracer_create_engine block="create engine %track=neoracer_create_track"
-    export function createEngine(track: Track, group: number = 42): MultiPlayerEngine {
-        const engine = new MultiPlayerEngine();
+    export function createEngine(track: Track, group: number = 42): Engine {
+        const engine = new Engine();
         engine.track = track;
         engine.state = GameState.Stopped;
         engine.laps = 4;
