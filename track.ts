@@ -103,7 +103,7 @@ namespace neoracer {
     export function createTrack(strip: neopixel.Strip): Track {
         const track = new Track();
         track.strip = strip;
-        track.strip.setBrigthness(255); // handled internally
+        track.strip.setBrightness(255); // handled internally
         track.sections = [];
         track.cars = [];
         return track;

@@ -207,8 +207,8 @@ namespace neoracer {
     /** 
  * Creates a new pixel track on top of the NeoPixel strip 
  */
-    //% blockId=neoracer_create_engine block="create multi player engine %track=neoracer_create_track"
-    export function createMultiPlayerEngine(track: Track, group: number = 42): MultiPlayerEngine {
+    //% blockId=neoracer_create_engine block="create engine %track=neoracer_create_track"
+    export function createEngine(track: Track, group: number = 42): MultiPlayerEngine {
         const engine = new MultiPlayerEngine();
         engine.track = track;
         engine.state = GameState.Stopped;

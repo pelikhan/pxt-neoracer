@@ -14,7 +14,7 @@
         "section.ts",
         "car.ts",
         "track.ts",
-        "multiplayerengine.ts"
+        "engine.ts"
     ],
     "testFiles": [
         "tests.ts"
