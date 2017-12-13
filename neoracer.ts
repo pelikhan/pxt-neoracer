@@ -6,6 +6,7 @@ enum GameControllerKind {
 /**
  * A race track made of neopixels
  */
+//% icon="\uf1b9" weight=90
 namespace neoracer {
     /**
      * Creates an infinity loop track on top of the strip
@@ -40,14 +41,15 @@ namespace neoracer {
     /**
      *  Starts a car controller 
      **/
-    //% blockId=neoracer_start_remote_controller block="start controller %kind"
-    export function startRemoteController(kind: GameControllerKind, group: number = 42) {
+    //% blockId=neoracer_start_remote_controller block="start controller %kind on group %group"
+    export function startRemoteController(kind: GameControllerKind, group: number) {
         radio.setTransmitSerialNumber(true);
         radio.setTransmitPower(7);
-        radio.setGroup(group);
-        const car = new Car();
+        if (group)
+            radio.setGroup(group);
+        
+        const car = new Car(control.deviceSerialNumber());
         car.usePins = kind == GameControllerKind.Pins;
-        car.deviceId = control.deviceSerialNumber();
 
         input.onButtonPressed(Button.A, () => {
             radio.sendString("A");

@@ -75,8 +75,7 @@ namespace neoracer {
                 NeoPixelColors.Orange
             ];
 
-            const c = new Car();
-            c.deviceId = deviceId;
+            const c = new Car(deviceId);
             c.color = carColors[this.cars.length % carColors.length];
             this.cars.push(c)
 
@@ -88,10 +87,10 @@ namespace neoracer {
          * Renders the current state of the track
          */
         public show() {
-            for (let i = 0; i < this.sections.length; ++i)
-                this.sections[i].render();
-            for (let i = 0; i < this.cars.length; ++i)
-                this.cars[i].render(this.strip);
+            for (const section of this.sections)
+                section.render();    
+            for (const car of this.cars)
+                car.render(this.strip);
             this.strip.show();
         }
     }

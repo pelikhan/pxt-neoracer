@@ -22,6 +22,11 @@ namespace neoracer {
         public state: CarState;
         public time: number;
 
+        constructor(deviceId: number) {
+            this.deviceId = deviceId;
+            this.offset = 0;
+        }
+
         public deserialize(state: number) {
             this.turbo = !!(state & 0xff);
             this.steering = (state >> 8) & 0xff;
@@ -42,10 +47,11 @@ namespace neoracer {
             const l = strip.length();
             const stateColors = [
                 0,
-                0x404000,
-                0x000000,
-                0xf00000,
-                0x0f0f0f
+                0x404000, // joined
+                0, // run
+                0xf00000, // turbo
+                0x0f0f0f, // crashing
+                0 // finished
             ]
             const col = stateColors[this.state] | this.color;
 
@@ -62,8 +68,9 @@ namespace neoracer {
 
         public setState(state: CarState) {
             this.state = state;
-            if (this.state == CarState.None) return;
+            if (this.state == CarState.None || !this.deviceId) return;
 
+            // send remote state
             let msg: string;
             switch (this.state) {
                 case CarState.Run: msg = "run"; break;
@@ -72,8 +79,7 @@ namespace neoracer {
                 case CarState.Finished: msg = "finished"; break;
                 case CarState.Joined: msg = "joined"; break;
             }
-            if (this.deviceId) // builtin car id is 0, don't send message
-                radio.sendValue(msg, this.deviceId);
+            radio.sendValue(msg, this.deviceId);
         }
 
         public receivePacket(packet: radio.Packet) {
