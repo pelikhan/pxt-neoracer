@@ -17,13 +17,11 @@ namespace neoracer {
         const engine = createEngine(track, group);
         const n = strip.length();
 
-        const straight = n / 5;
-        const turn = (n - 4 * straight) / 4;
-        let correction = n - 4 * straight - 4 * turn;
-        const overpass = turn + correction / 2;
-        correction = n - 2 * turn - 2 * overpass;
+        const straight = n / 6;
+        const turn = n / 10;
+        const overpass = (n - 4 * straight - 2 * turn) / 2;
 
-        track.addSection(straight + correction, SectionShape.Straight);
+        track.addSection(straight, SectionShape.Straight);
         track.addSection(overpass, SectionShape.Overpass);
         track.addSection(straight, SectionShape.Straight);
         track.addSection(turn, SectionShape.LeftTurn);

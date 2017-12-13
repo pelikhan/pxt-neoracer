@@ -31,7 +31,8 @@ namespace neoracer {
         //% blockId=neoracer_engine_start block="%this|start"
         public start() {
             this.listenPins();
-            this.listenRadio(this.group);
+            if (this.group)
+                this.listenRadio(this.group);
             this.stop();
         }
 
@@ -61,7 +62,8 @@ namespace neoracer {
         }
 
         private sendTone(msg: SoundMessage) {
-            radio.sendValue("sound", msg);
+            if (this.group)
+                radio.sendValue("sound", msg);
         }
 
         private run() {
@@ -207,8 +209,8 @@ namespace neoracer {
     /** 
  * Creates a new pixel track on top of the NeoPixel strip 
  */
-    //% blockId=neoracer_create_engine block="create engine %track=neoracer_create_track"
-    export function createEngine(track: Track, group: number = 42): Engine {
+    //% blockId=neoracer_create_engine block="create engine %track=neoracer_create_track at group %group"
+    export function createEngine(track: Track, group: number = 0): Engine {
         const engine = new Engine();
         engine.track = track;
         engine.state = GameState.Stopped;
