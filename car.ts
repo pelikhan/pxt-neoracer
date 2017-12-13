@@ -16,7 +16,7 @@ namespace neoracer {
         public usePins: boolean;
 
         public turbo: boolean;
-        public steering: int8;
+        public steering: number;
         public offset: number;
         public color: number;
         public state: CarState;

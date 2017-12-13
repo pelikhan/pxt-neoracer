@@ -1,12 +1,12 @@
 {
     "name": "neoracer",
     "version": "0.0.0",
-    "description": "A racecar engine built on top of NeoPixel strips",
+    "description": "A race car engine built on top of NeoPixel strips",
     "license": "MIT",
     "dependencies": {
         "core": "*",
         "radio": "*",
-        "neopixel": "github:microsoft/pxt-neopixel#v0.3.2"
+        "neopixel": "github:microsoft/pxt-neopixel#v0.4.1"
     },
     "files": [
         "README.md",
