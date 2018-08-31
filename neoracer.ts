@@ -61,7 +61,7 @@ namespace neoracer {
         basic.forever(() => {
             car.updateState();
             car.sendState();
-            led.plot(Math.random(5), Math.random(5));
+            led.plot(Math.randomRange(0, 4), Math.randomRange(0, 4));
         })
     }
 
@@ -71,7 +71,7 @@ namespace neoracer {
     //% blockId=neoracer_soundengine block="start sound engine"
     export function startSoundEngine(group: number = 42) {
         radio.setGroup(group);
-        radio.onDataPacketReceived(({receivedNumber}) => {
+        radio.onReceivedNumber(function (receivedNumber) {
             switch (receivedNumber) {
                 case SoundMessage.Run:
                     led.toggle(0, 0);

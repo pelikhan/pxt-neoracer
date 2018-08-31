@@ -108,7 +108,7 @@ namespace neoracer {
             const n = strip.length();
             strip.clear()
             for (let m = 0; m < 50; m++) {
-                const l = Math.random(n)
+                const l = Math.randomRange(0, n - 1)
                 strip.setPixelColor(l, NeoPixelColors.White)
                 strip.show()
                 basic.pause(90)

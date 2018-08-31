@@ -65,7 +65,8 @@ namespace neoracer {
         }
 
         public addCar(deviceId: number): Car {
-            if (this.car(deviceId)) return; // already added
+            let c = this.car(deviceId);
+            if (c) return c; // already added
 
             const carColors = [
                 NeoPixelColors.Blue,
@@ -75,7 +76,7 @@ namespace neoracer {
                 NeoPixelColors.Orange
             ];
 
-            const c = new Car(deviceId);
+            c = new Car(deviceId);
             c.color = carColors[this.cars.length % carColors.length];
             this.cars.push(c)
 
